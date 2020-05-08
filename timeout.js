@@ -5,14 +5,13 @@ function IdleTimeout(timeoutSeconds, options) {
         alertTimeoutSeconds: 10,
         events:  "mousemove keydown wheel DOMMouseScroll mousewheel mousedown touchstart touchmove MSPointerDown MSPointerMove"
     }
+
     this.timeoutSeconds = timeoutSeconds;
     this.options = Object.assign({}, defaultOptions, options);
     this.timeoutRef = null;
-    this.activityListenerRefs   =  {};
+    this.activityListenerRefs = {};
     this.startTime = null;
     this.endTime =  null;
-    this.intervalRef =null;
-    // this.activityListener.bind(this);
 
     this.options.events.split(' ').forEach(function (event) {
         this.activityListenerRefs[event] = this.activityListener.bind(this);
@@ -27,15 +26,17 @@ function IdleTimeout(timeoutSeconds, options) {
 IdleTimeout.prototype.startTimer = function () {
     this.startTime = new Date();
     this.endTime =  new Date(this.startTime.getTime() + (this.timeoutSeconds * 1000));
-
     this.timeoutRef = setTimeout(this.onTimerDone.bind(this), this.timeoutSeconds * 1000);
+    this.intervalRef =  setInterval(this.showMessage.bind(this), 1000);
+}
 
-    this.intervalRef =  setInterval(this.showMessage.bind(this),1000);
-}
+
 IdleTimeout.prototype.clearTimer = function () {
-    clearTimeout(this.timeoutref);
+    clearTimeout(this.timeoutRef);
     clearTimeout(this.intervalRef);
+    this.hideMessage();
 }
+
 IdleTimeout.prototype.resetTimer =  function () {
     this.clearTimer();
     this.startTimer();
@@ -44,19 +45,19 @@ IdleTimeout.prototype.resetTimer =  function () {
 IdleTimeout.prototype.onTimerDone =  function () {
     this.options.callback();
     this.options.events.split(' ').forEach(function (event) {
-        window.removeEventListener(event,  this.activityListenerRefs[event])
+        window.removeEventListener(event,  this.activityListenerRefs[event]);
     }, this);
-    clearTimeout(this.intervalRef)
+    clearTimeout(this.intervalRef);
+    this.hideMessage();   
 }
-IdleTimeout.prototype.activityListener = function () {
 
+IdleTimeout.prototype.activityListener = function () {
+        this.resetTimer();
 }
 
 IdleTimeout.prototype.showMessage = function() {
     var remaining = Math.ceil((this.endTime.getTime() - (new Date().getTime()))/1000);
     var message = `${remaining} second(s) remaining...`;
-    console.log(message);
-
     var messageElement = document.querySelector('#timeout-message');
     if(!messageElement) {
         messageElement = document.createElement('span');
@@ -75,10 +76,26 @@ IdleTimeout.prototype.showMessage = function() {
                 padding: 15px;
                 border: 1px solid grey;
                 box-shadow: 0 0 5px -2px rgba(0, 0, 0, .5);
+                color: white;
             `;
         }
-
-         document.body.appendChild(messageElement);
+        
+    }       
+        if(remaining <=  this.options.alertTimeoutSeconds) {
+            messageElement.style.backgroundColor = "green";
+            document.body.appendChild(messageElement);
+        }
+        if(remaining <= 5) {
+            messageElement.style.backgroundColor = "red";
+            document.body.appendChild(messageElement);
     }
-    document.body.innerHTML = message;
+
+        messageElement.innerHTML = message
+    }
+
+    IdleTimeout.prototype.hideMessage = function () {
+        var messageElement = document.querySelector('#timeout-message');
+            if(messageElement) {
+                document.body.removeChild(messageElement)
+        }
     }
